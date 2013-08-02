@@ -2,6 +2,7 @@ package com.miraclem4n.mchat.api;
 
 import com.miraclem4n.mchat.types.IndicatorType;
 import com.miraclem4n.mchat.util.MessageUtil;
+import net.milkbowl.vault.chat.Chat;
 import net.milkbowl.vault.permission.Permission;
 import org.anjocaido.groupmanager.GroupManager;
 import org.anjocaido.groupmanager.dataholder.worlds.WorldsHolder;
@@ -18,10 +19,14 @@ import ru.tehkode.permissions.bukkit.PermissionsEx;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 
+@SuppressWarnings("unused")
 public class API {
     // Vault
     private static Permission vPerm;
     private static Boolean vaultB;
+
+    public static Chat vChat = null;
+    public static Boolean vChatB = false;
 
     // GroupManager
     public static WorldsHolder gmWH;
@@ -42,11 +47,13 @@ public class API {
 
     // Var Map
     public static TreeMap<String, String> varMap;
+    public static TreeMap<String, String> varMapQueue;
 
     public static void initialize() {
         setupPlugins();
 
         varMap = new TreeMap<String, String>();
+        varMapQueue = new TreeMap<String, String>();
     }
 
     /**
@@ -63,7 +70,7 @@ public class API {
             value = "";
         }
 
-        varMap.put("%^global^%|" + var, value);
+        varMapQueue.put("%^global^%|" + var, value);
     }
 
     /**
@@ -81,7 +88,7 @@ public class API {
             value = "";
         }
 
-        varMap.put(pName + "|" + var, value);
+        varMapQueue.put(pName + "|" + var, value);
     }
 
     /**
@@ -92,7 +99,7 @@ public class API {
     public static String createHealthBar(Player player) {
         float maxHealth = 20;
         float barLength = 10;
-        float health = player.getHealth();
+        double health = player.getHealth();
 
         return createBasicBar(health, maxHealth, barLength);
     }
@@ -117,8 +124,8 @@ public class API {
      * @param barLength Length of Bar.
      * @return Formatted Health Bar.
      */
-    public static String createBasicBar(float currentValue, float maxValue, float barLength) {
-        int fill = Math.round((currentValue / maxValue) * barLength);
+    public static String createBasicBar(double currentValue, float maxValue, float barLength) {
+        int fill = (int) Math.round((currentValue / maxValue) * barLength);
 
         String barColor = (fill <= (barLength / 4)) ? "&4" : (fill <= (barLength / 7)) ? "&e" : "&2";
 
@@ -156,31 +163,10 @@ public class API {
      * @return Player has Node.
      */
     public static Boolean checkPermissions(String pName, String world, String node) {
-        if (vaultB) {
-            if (vPerm.has(world, pName, node)) {
-                return true;
-            }
-        }
-
-        if (gmB) {
-            if (gmWH.getWorldPermissions(pName).getPermissionBoolean(pName, node)) {
-                return true;
-            }
-        }
-
-        if (pexB) {
-            if (pexPermissions.has(pName, world, node)) {
-                return true;
-            }
-        }
-
-        if (Bukkit.getServer().getPlayer(pName) != null) {
-            if (Bukkit.getServer().getPlayer(pName).hasPermission(node)) {
-                return true;
-            }
-        }
-
-        return false;
+        return vaultB && vPerm.has(world, pName, node)
+                || gmB && gmWH.getWorldPermissions(pName).getPermissionBoolean(pName, node)
+                || pexB && pexPermissions.has(pName, world, node)
+                || Bukkit.getServer().getPlayer(pName) != null && Bukkit.getServer().getPlayer(pName).hasPermission(node);
     }
 
     /**
@@ -190,13 +176,8 @@ public class API {
      * @return Sender has Node.
      */
     public static Boolean checkPermissions(CommandSender sender, String node) {
-        if (vaultB) {
-            if (vPerm.has(sender, node)) {
-                return true;
-            }
-        }
-
-        return sender.hasPermission(node);
+        return vaultB && vPerm.has(sender, node)
+                || sender.hasPermission(node);
     }
 
     /**
@@ -235,34 +216,29 @@ public class API {
         pluginTest = pm.getPlugin("Vault");
         vaultB = pluginTest != null;
         if (vaultB) {
-            MessageUtil.logFormatted("<Plugin> " + pluginTest.getDescription().getName() + " v" + pluginTest.getDescription().getVersion() + " hooked!.");
-
             RegisteredServiceProvider<Permission> permissionProvider = Bukkit.getServer().getServicesManager().getRegistration(Permission.class);
+            RegisteredServiceProvider<Chat> chatProvider = Bukkit.getServer().getServicesManager().getRegistration(Chat.class);
+
+            if (chatProvider != null) {
+                MessageUtil.logFormatted("<Chat> " + pluginTest.getDescription().getName() + " v" + pluginTest.getDescription().getVersion() + " hooked!.");
+                vChat = chatProvider.getProvider();
+            }
 
             if (permissionProvider != null) {
+                MessageUtil.logFormatted("<Permissions> " + pluginTest.getDescription().getName() + " v" + pluginTest.getDescription().getVersion() + " hooked!.");
                 vPerm = permissionProvider.getProvider();
             }
 
             vaultB = vPerm != null;
+            vChatB = vChat != null;
         }
 
-        pluginTest = pm.getPlugin("PermissionsBukkit");
-        pBukkitB = pluginTest != null;
-        if (pBukkitB) {
-            MessageUtil.logFormatted("<Permissions> " + pluginTest.getDescription().getName() + " v" + pluginTest.getDescription().getVersion() + " hooked!.");
-        }
+        pBukkitB = setupPermPlugin(pm.getPlugin("PermissionsBukkit"));
+        bPermB = setupPermPlugin(pm.getPlugin("bPermissions"));
+        pexB = setupPermPlugin(pm.getPlugin("PermissionsEx"));
 
-        pluginTest = pm.getPlugin("bPermissions");
-        bPermB = pluginTest != null;
-        if (bPermB) {
-            MessageUtil.logFormatted("<Permissions> " + pluginTest.getDescription().getName() + " v" + pluginTest.getDescription().getVersion() + " hooked!.");
-        }
-
-        pluginTest = pm.getPlugin("PermissionsEx");
-        pexB = pluginTest != null;
         if (pexB) {
             pexPermissions = PermissionsEx.getPermissionManager();
-            MessageUtil.logFormatted("<Permissions> " + pluginTest.getDescription().getName() + " v" + pluginTest.getDescription().getVersion() + " hooked!.");
         }
 
         pluginTest = pm.getPlugin("GroupManager");
@@ -270,16 +246,22 @@ public class API {
         if (gmB) {
             gmWH = ((GroupManager) pluginTest).getWorldsHolder();
             MessageUtil.logFormatted("<Permissions> " + pluginTest.getDescription().getName() + " v" + pluginTest.getDescription().getVersion() + " hooked!.");
+
         }
 
-        pluginTest = pm.getPlugin("Privileges");
-        privB = pluginTest != null;
-        if (privB) {
-            MessageUtil.logFormatted("<Permissions> " + pluginTest.getDescription().getName() + " v" + pluginTest.getDescription().getVersion() + " hooked!.");
-        }
+        privB = setupPermPlugin(pm.getPlugin("Privileges"));
 
         if (!(vaultB || pBukkitB || bPermB || pexB || gmB)) {
             MessageUtil.logFormatted("<Permissions> SuperPerms hooked!.");
         }
+    }
+
+    private static Boolean setupPermPlugin(Plugin plugin) {
+        if (plugin != null) {
+            MessageUtil.logFormatted("<Permissions> " + plugin.getDescription().getName() + " v" + plugin.getDescription().getVersion() + " hooked!.");
+            return true;
+        }
+
+        return false;
     }
 }

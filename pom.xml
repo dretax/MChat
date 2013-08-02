@@ -4,14 +4,14 @@
     <!-- Project information -->
     <groupId>ca.q0r</groupId>
     <artifactId>MChat</artifactId>
-    <version>1.5.1-R0.7</version>
+    <version>1.6.2-R0.1</version>
     <name>MChat</name>
     <url>http://mdev.in/</url>
     <description>Chat Formatting for Bukkit</description>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <build.number>Unknown</build.number>
+        <build.number>335</build.number>
     </properties>
 
     <!-- Source code -->
@@ -49,7 +49,7 @@
                 <updatePolicy>always</updatePolicy>
             </snapshots>
         </repository>
-        <repository>
+        <!--repository>
             <id>kitteh-repo</id>
             <url>http://repo.kitteh.org/content/groups/public</url>
             <releases>
@@ -58,7 +58,7 @@
             <snapshots>
                 <updatePolicy>always</updatePolicy>
             </snapshots>
-        </repository>
+        </repository-->
         <repository>
             <id>q0r-repo</id>
             <url>http://repo.q0r.ca</url>
@@ -110,7 +110,7 @@
         <dependency>
             <groupId>org.bukkit</groupId>
             <artifactId>bukkit</artifactId>
-            <version>1.5.1-R0.2</version>
+            <version>1.6.2-R0.1-SNAPSHOT</version>
             <type>jar</type>
             <scope>compile</scope>
         </dependency>
@@ -146,13 +146,6 @@
             <groupId>me.desmin88</groupId>
             <artifactId>MobDisguise</artifactId>
             <version>1.63</version>
-            <type>jar</type>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.massivecraft</groupId>
-            <artifactId>Factions</artifactId>
-            <version>1.4.5</version>
             <type>jar</type>
             <scope>compile</scope>
         </dependency>

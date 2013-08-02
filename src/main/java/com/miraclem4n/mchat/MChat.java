@@ -1,32 +1,30 @@
 package com.miraclem4n.mchat;
 
 import com.herocraftonline.heroes.Heroes;
-import com.massivecraft.factions.Conf;
 import com.miraclem4n.mchat.api.API;
 import com.miraclem4n.mchat.api.Parser;
 import com.miraclem4n.mchat.api.Writer;
 import com.miraclem4n.mchat.commands.InfoAlterCommand;
 import com.miraclem4n.mchat.commands.MChatCommand;
 import com.miraclem4n.mchat.commands.MeCommand;
-import com.miraclem4n.mchat.configs.CensorUtil;
-import com.miraclem4n.mchat.configs.ConfigUtil;
-import com.miraclem4n.mchat.configs.InfoUtil;
-import com.miraclem4n.mchat.configs.LocaleUtil;
+import com.miraclem4n.mchat.configs.YmlManager;
+import com.miraclem4n.mchat.configs.YmlType;
+import com.miraclem4n.mchat.configs.config.ConfigType;
 import com.miraclem4n.mchat.events.ChatListener;
 import com.miraclem4n.mchat.events.CommandListener;
-import com.miraclem4n.mchat.events.EntityListener;
 import com.miraclem4n.mchat.events.PlayerListener;
 import com.miraclem4n.mchat.metrics.Metrics;
 import com.miraclem4n.mchat.types.InfoType;
-import com.miraclem4n.mchat.types.config.ConfigType;
 import com.miraclem4n.mchat.util.MessageUtil;
 import com.miraclem4n.mchat.util.TimerUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitRunnable;
 import uk.org.whoami.geoip.GeoIPLookup;
 import uk.org.whoami.geoip.GeoIPTools;
 
@@ -70,19 +68,26 @@ public class MChat extends JavaPlugin {
         // First we kill EssentialsChat
         killEss();
 
-        try {
-            Metrics metrics = new Metrics(this);
-            metrics.start();
-        } catch (IOException ignored) {}
-
-
+        //Use a task, so we can wait for server to finish intializing.
+        getServer().getScheduler().runTaskLater(this, new BukkitRunnable(){
+				@Override
+				public void run() {
+					try {
+						Metrics metrics = new Metrics(Bukkit.getPluginManager().getPlugin("MChat"));
+			            metrics.findCustomData();
+			            metrics.start();
+			        } catch (IOException ignored) {}	
+				}
+		        			
+			}, 200);
+                
         // Setup Static Variables
         shouting = new HashMap<String, Boolean>();
         spying = new HashMap<String, Boolean>();
         shoutFormat = "";
 
-        // Initialize Configs
-        initializeConfigs();
+        // Load Yml
+        YmlManager.load();
 
         // Setup Plugins
         setupPlugins();
@@ -99,8 +104,8 @@ public class MChat extends JavaPlugin {
         // Add All Players To Info.yml
         if (ConfigType.INFO_ADD_NEW_PLAYERS.getBoolean()) {
             for (Player players : getServer().getOnlinePlayers()) {
-                if (InfoUtil.getConfig().get("users." + players.getName()) == null) {
-                    Writer.addBase(players.getName(), ConfigType.INFO_DEFAULT_GROUP.getString());
+                if (YmlManager.getYml(YmlType.INFO_YML).getConfig().get("users." + players.getName()) == null) {
+                    Writer.addBase(players.getName(), ConfigType.INFO_DEFAULT_GROUP.getString(), false);
                 }
             }
         }
@@ -125,8 +130,8 @@ public class MChat extends JavaPlugin {
         spying = null;
         shoutFormat = null;
 
-        // Kill Configs
-        unloadConfigs();
+        // Unload Yml
+        YmlManager.unload();
 
         // Stop the Timer
         timer.stop();
@@ -140,8 +145,6 @@ public class MChat extends JavaPlugin {
     void registerEvents() {
         if (!ConfigType.MCHAT_API_ONLY.getBoolean()) {
             pm.registerEvents(new PlayerListener(this), this);
-
-            pm.registerEvents(new EntityListener(this), this);
 
             pm.registerEvents(new ChatListener(this), this);
 
@@ -168,13 +171,6 @@ public class MChat extends JavaPlugin {
             geoip = ((GeoIPTools) pm.getPlugin("GeoIPTools")).getGeoIPLookup();
         }
 
-        // Setup Factions
-        Boolean factions = setupPlugin("Factions");
-
-        if (factions) {
-            setupFactions();
-        }
-
         // Setup Heroes
         heroesB = setupPlugin("Heroes");
 
@@ -188,41 +184,12 @@ public class MChat extends JavaPlugin {
         towny = setupPlugin("Towny");
     }
 
-    void setupFactions() {
-        try {
-            if (!(Conf.chatTagInsertIndex == 0)) {
-                getServer().dispatchCommand(getServer().getConsoleSender(), "f config chatTagInsertIndex 0");
-            }
-        } catch (NoSuchFieldError ignored) {}
-    }
-
     void killEss() {
         Plugin plugin = pm.getPlugin("EssentialsChat");
 
         if (plugin != null) {
             pm.disablePlugin(plugin);
         }
-    }
-
-    public void initializeConfigs() {
-        ConfigUtil.initialize();
-        InfoUtil.initialize();
-        CensorUtil.initialize();
-        LocaleUtil.initialize();
-    }
-
-    public void reloadConfigs() {
-        ConfigUtil.initialize();
-        InfoUtil.initialize();
-        CensorUtil.initialize();
-        LocaleUtil.initialize();
-    }
-
-    private void unloadConfigs() {
-        ConfigUtil.dispose();
-        InfoUtil.dispose();
-        CensorUtil.dispose();
-        LocaleUtil.dispose();
     }
 
     void setupCommands() {

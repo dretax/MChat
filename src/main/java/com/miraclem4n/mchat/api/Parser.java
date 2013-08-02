@@ -6,13 +6,15 @@ import com.herocraftonline.heroes.characters.classes.HeroClass;
 import com.herocraftonline.heroes.util.Messaging;
 import com.maxmind.geoip.Country;
 import com.maxmind.geoip.Location;
+import com.maxmind.geoip.regionName;
 import com.miraclem4n.mchat.MChat;
-import com.miraclem4n.mchat.configs.CensorUtil;
+import com.miraclem4n.mchat.configs.YmlManager;
+import com.miraclem4n.mchat.configs.YmlType;
+import com.miraclem4n.mchat.configs.config.ConfigType;
+import com.miraclem4n.mchat.configs.locale.LocaleType;
 import com.miraclem4n.mchat.types.EventType;
 import com.miraclem4n.mchat.types.IndicatorType;
 import com.miraclem4n.mchat.types.InfoType;
-import com.miraclem4n.mchat.types.config.ConfigType;
-import com.miraclem4n.mchat.types.config.LocaleType;
 import com.miraclem4n.mchat.util.MessageUtil;
 import com.palmergames.bukkit.towny.TownyFormatter;
 import com.palmergames.bukkit.towny.object.Nation;
@@ -61,91 +63,43 @@ public class Parser {
      * @return Formatted Message.
      */
     public static String parseMessage(String pName, String world, String msg, String format) {
-        Object prefix = Reader.getRawPrefix(pName, InfoType.USER, world);
-        Object suffix = Reader.getRawSuffix(pName, InfoType.USER, world);
-        Object group = Reader.getRawGroup(pName, InfoType.USER, world);
+        Object prefix = checkNull(Reader.getRawPrefix(pName, InfoType.USER, world));
+        Object suffix = checkNull(Reader.getRawSuffix(pName, InfoType.USER, world));
+        Object group = checkNull(Reader.getRawGroup(pName, InfoType.USER, world));
         List<Object> groups = Reader.getRawGroups(pName, InfoType.USER, world);
 
-        String vI = ConfigType.MCHAT_VAR_INDICATOR.getString();
+        String vI = IndicatorType.MISC_VAR.getValue();
 
-        if (msg == null) {
-            msg = "";
-        }
-
-        if (prefix == null) {
-            prefix = "";
-        }
-
-        if (suffix == null) {
-            suffix = "";
-        }
-
-        if (group == null) {
-            group = "";
-        }
+        msg = checkNull(msg).toString();
 
         if (groups == null) {
             group = new ArrayList<Object>();
         }
 
         // Geoip Vars
-        String gCountry = "";
-        String gCountryCode = "";
-        String gRegion = "";//states?
-        String gCity = "";
+        String gCountry = "", gCountryCode = "", gRegion = "", gCity = "";
 
         // Heroes Vars
-        String hSClass = "";
-        String hClass = "";
-        String hHealth = "";
-        String hHBar = "";
-        String hMana = "";
-        String hMBar = "";
-        String hParty = "";
-        String hMastered = "";
-        String hLevel = "";
-        String hSLevel = "";
-        String hExp = "";
-        String hSExp = "";
-        String hEBar = "";
-        String hSEBar = "";
+        String hSClass = "", hClass = "", hHealth = "", hHBar = "", hMana = "", hMBar = "", hParty = "", 
+                hMastered = "", hLevel = "", hSLevel = "", hExp = "", hSExp = "", hEBar = "", hSEBar = "";
 
         // Towny Vars
-        String tTown = "";
-        String tTownName = "";
-        String tTitle = "";
-        String tSurname = "";
-        String tResidentName = "";
-        String tPrefix = "";
-        String tNamePrefix = "";
-        String tPostfix = "";
-        String tNamePostfix = "";
-        String tNation = "";
-        String tNationName = "";
-        String tNationTag = "";
+        String tTown = "", tTownName = "", tTitle = "", tSurname = "", tResidentName = "", tPrefix = "",
+                tNamePrefix = "", tPostfix = "", tNamePostfix = "", tNation = "", tNationName = "", tNationTag = "";
 
         // Location
-        Double locX = (double) randomNumber(-100, 100);
-        Double locY = (double) randomNumber(-100, 100);
-        Double locZ = (double) randomNumber(-100, 100);
+        Double locX = 0.0, locY = 0.0, locZ = 0.0;
 
-        String loc = ("X: " + locX + ", " + "Y: " + locY + ", " + "Z: " + locZ);
+        String loc = "X: 0.0, Y: 0.0, Z: 0.0";
 
         // Health
-        String healthbar = "";
-        String health = String.valueOf(randomNumber(1, 20));
+        String healthBar = "", health = "";
 
         // World
         String pWorld = "";
 
         // 1.8 Vars
-        String hungerLevel = String.valueOf(randomNumber(0, 20));
-        String hungerBar = API.createBasicBar(randomNumber(0, 20), 20, 10);
-        String level = String.valueOf(randomNumber(1, 2));
-        String exp = String.valueOf(randomNumber(0, 200))+ "/" + ((randomNumber(1, 2) + 1) * 10);
-        String expBar = API.createBasicBar(randomNumber(0, 200), ((randomNumber(1, 2) + 1) * 10), 10);
-        String tExp = String.valueOf(randomNumber(0, 300));
-        String gMode = String.valueOf(randomNumber(0, 1));
+        String hungerLevel = "", hungerBar = "", level = "", exp = "", expBar = "", tExp = "", gMode = "";
 
         // Time Var
         Date now = new Date();
@@ -166,7 +120,7 @@ public class Parser {
             dType = LocaleType.FORMAT_LOCAL.getVal();
         }
 
-        // Chat Distance Type
+        // Spy Type
         String sType = "";
 
         if (MChat.spying.get(pName) != null
@@ -183,10 +137,10 @@ public class Parser {
             locY = player.getLocation().getY();
             locZ = player.getLocation().getZ();
 
-            loc = ("X: " + locX + ", " + "Y: " + locY + ", " + "Z: " + locZ);
+            loc = "X: " + locX + ", " + "Y: " + locY + ", " + "Z: " + locZ;
 
             // Health
-            healthbar = API.createHealthBar(player);
+            healthBar = API.createHealthBar(player);
             health = String.valueOf(player.getHealth());
 
             // World
@@ -208,14 +162,14 @@ public class Parser {
             // Display Name
             dName = player.getDisplayName();
 
-            // Initialize GeopIP Vars
+            // Initialize GeoIP Vars
             if (geoipB) {
                 Country country = geoip.getCountry(player.getAddress().getAddress());
                 Location location = geoip.getLocation(player.getAddress().getAddress());
 
                 gCountry = country.getName();
                 gCountryCode = country.getCode();
-                gRegion = com.maxmind.geoip.regionName.regionNameByCode(gCountryCode, location.region); //states?
+                gRegion = regionName.regionNameByCode(gCountryCode, location.region);
                 gCity = location.city;
             }
 
@@ -231,8 +185,8 @@ public class Parser {
                 double hSE = hero.getExperience(heroSClass);
 
                 hClass = hero.getHeroClass().getName();
-                hHealth = String.valueOf(hero.getHealth());
-                hHBar = Messaging.createHealthBar(hero.getHealth(), hero.getMaxHealth());
+                hHealth = String.valueOf(hero.getPlayer().getHealth());
+                hHBar = Messaging.createHealthBar(hero.getPlayer().getHealth(), hero.getPlayer().getMaxHealth());
                 hMana = String.valueOf(hero.getMana());
                 hLevel = String.valueOf(hL);
                 hExp = String.valueOf(hE);
@@ -255,12 +209,9 @@ public class Parser {
                     hSEBar = Messaging.createExperienceBar(hero, heroSClass);
                 }
 
-                if ((hero.isMaster(heroClass))
-                        && (heroSClass == null || hero.isMaster(heroSClass))) {
-                    hMastered = LocaleType.MESSAGE_HEROES_TRUE.getVal();
-                } else {
-                    hMastered = LocaleType.MESSAGE_HEROES_FALSE.getVal();
-                }
+
+                hMastered = hero.isMaster(heroClass) && (heroSClass == null || hero.isMaster(heroSClass))
+                        ? LocaleType.MESSAGE_HEROES_TRUE.getVal() : LocaleType.MESSAGE_HEROES_FALSE.getVal();
             }
 
             if (townyB) {
@@ -324,7 +275,7 @@ public class Parser {
         TreeMap<String, Object> lVarMap = new TreeMap<String, Object>();
 
         addVar(fVarMap, vI + "mnameformat," + vI + "mnf", LocaleType.FORMAT_NAME.getVal());
-        addVar(fVarMap, vI + "healthbar," + vI + "hb", healthbar);
+        addVar(fVarMap, vI + "healthbar," + vI + "hb", healthBar);
 
         addVar(rVarMap, vI + "distancetype," + vI + "dtype", dType);
         addVar(rVarMap, vI + "displayname," + vI + "dname," + vI + "dn", dName);
@@ -503,7 +454,7 @@ public class Parser {
     }
 
     private static String parseVars(String format, String pName, String world) {
-        String vI = "\\" + ConfigType.MCHAT_VAR_INDICATOR.getString();
+        String vI = "\\" + IndicatorType.MISC_VAR.getValue();
         Pattern pattern = Pattern.compile(vI + "<(.*?)>");
         Matcher matcher = pattern.matcher(format);
         StringBuffer sb = new StringBuffer();
@@ -533,6 +484,11 @@ public class Parser {
     }
 
     private static String replaceCustVars(String pName, String format) {
+        if (!API.varMapQueue.isEmpty()) {
+            API.varMap.putAll(API.varMapQueue);
+            API.varMapQueue.clear();
+        }
+
         Set<Map.Entry<String, String>> varSet = API.varMap.entrySet();
 
         for (Map.Entry<String, String> entry : varSet) {
@@ -561,7 +517,7 @@ public class Parser {
             msg = replacer(msg, "([0-9]{1,3}\\.){3}([0-9]{1,3})", "*.*.*.*");
         }
 
-        for (Map.Entry<String, Object> entry : CensorUtil.getConfig().getValues(false).entrySet()) {
+        for (Map.Entry<String, Object> entry : YmlManager.getYml(YmlType.CENSOR_YML).getConfig().getValues(false).entrySet()) {
             String val = entry.getValue().toString();
 
             msg = replacer(msg, "(?i)" + entry.getKey(), val);
@@ -590,5 +546,9 @@ public class Parser {
         Random random = new Random();
 
         return random.nextInt(maxValue - minValue + 1) + minValue;
+    }
+
+    private static Object checkNull(Object obj) {
+        return obj != null ? obj : "";
     }
 }
